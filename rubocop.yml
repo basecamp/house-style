@@ -2,6 +2,10 @@ require:
   - rubocop-performance
   - rubocop-rails
 
+inherit_mode:
+  merge:
+    - Exclude
+
 AllCops:
   DisabledByDefault: true
   Exclude:
