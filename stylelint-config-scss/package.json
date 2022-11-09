@@ -1,0 +1,35 @@
+{
+  "name": "@37signals/stylelint-config-scss",
+  "version": "0.0.1",
+  "author": "37signals",
+  "license": "MIT",
+  "description": "37signals house style for SCSS",
+  "keywords": [
+    "stylelint",
+    "stylelint-config",
+    "scss"
+  ],
+  "homepage": "https://github.com/basecamp/house-style",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/basecamp/house-style.git",
+    "directory": "stylelint-config-scss"
+  },
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "index.js",
+  "files": [
+    "index.js"
+  ],
+  "dependencies": {
+    "stylelint-config-recommended-scss": "^8.0.0"
+  },
+  "devDependencies": {
+    "stylelint": "^14.14.0"
+  },
+  "peerDependencies": {
+    "stylelint": "^14.14.0"
+  }
+}
