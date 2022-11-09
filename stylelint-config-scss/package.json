@@ -1,6 +1,6 @@
 {
   "name": "@37signals/stylelint-config-scss",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "37signals",
   "license": "MIT",
   "description": "37signals house style for SCSS",
