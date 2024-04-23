@@ -35,7 +35,7 @@ export default {
     "@stylistic/js/space-infix-ops": [ "error" ],
     "@stylistic/js/keyword-spacing": [ "error" ],
     "curly": [ "error", "multi-line" ],
-    "no-unused-vars": [ "error", { "varsIgnorePattern": "_" } ],
+    "no-unused-vars": [ "error", { "argsIgnorePattern": "^_", "caughtErrors": "none" } ],
     "no-var": "error",
     "prefer-const": [ "error", { "destructuring": "all" } ]
   })
