@@ -1,0 +1,21 @@
+{
+  "name": "@37signals/eslint-config",
+  "version": "0.0.1",
+  "description": "Shared eslint config",
+  "main": "eslint.config.mjs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/basecamp/house-style.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/basecamp/house-style/issues"
+  },
+  "homepage": "https://github.com/basecamp/house-style#readme",
+  "dependencies": {
+    "@eslint/js": "^9.1.1",
+    "@stylistic/eslint-plugin-js": "^1.7.2",
+    "eslint": "^9.1.1",
+    "globals": "^15.0.0"
+  }
+}
