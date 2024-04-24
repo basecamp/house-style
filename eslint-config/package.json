@@ -1,13 +1,22 @@
 {
   "name": "@37signals/eslint-config",
   "version": "0.0.1",
-  "description": "Shared eslint config",
+  "license": "MIT",
+  "description": "37signals house style for JS",
+  "keywords": [
+    "eslint",
+    "eslint-config",
+    "js"
+  ],
   "main": "eslint.config.mjs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/basecamp/house-style.git"
   },
-  "license": "MIT",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "bugs": {
     "url": "https://github.com/basecamp/house-style/issues"
   },
