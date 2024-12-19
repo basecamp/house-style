@@ -1,0 +1,41 @@
+inherit_from: rubocop-ruby.yml
+
+require:
+  - rubocop-performance
+  - rubocop-rails
+  - rubocop-minitest
+
+inherit_mode:
+  merge:
+    - Exclude
+
+AllCops:
+  Exclude:
+    - "data/**/*"
+    - "db/*schema.rb"
+    - "log/**/*"
+    - "node_modules/**/*"
+    - "public/**/*"
+    - "storage/**/*"
+    - "tmp/**/*"
+    - "vendor/**/*"
+
+Performance:
+  Exclude:
+    - "test/**/*"
+
+# Prefer assert_not over assert !
+Rails/AssertNot:
+  Include:
+    - "test/**/*"
+
+# Prefer assert_not_x over refute_x
+Rails/RefuteMethods:
+  Include:
+    - "test/**/*"
+
+Performance/FlatMap:
+  Enabled: true
+
+Performance/UnfreezeString:
+  Enabled: true
