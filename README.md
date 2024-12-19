@@ -20,6 +20,7 @@ inherit_gem: { rubocop-37signals: rubocop.yml }
 ```yaml
 # 37signals house style
 inherit_gem: { rubocop-37signals: rubocop-ruby.yml }
+```
 
 App-specific config may follow, overriding the house style.
 
