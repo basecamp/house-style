@@ -13,8 +13,13 @@ gem "rubocop-37signals", github: "basecamp/house-style", require: false
 And create a boilerplate `.rubocop.yml` that inherits from `rubocop-37signals`:
 ```yaml
 # 37signals house style
-inherit_gem: { rubocop-37signals: rubocop-rails.yml }
+inherit_gem: { rubocop-37signals: rubocop.yml }
 ```
+
+### For non-Rails apps:
+```yaml
+# 37signals house style
+inherit_gem: { rubocop-37signals: rubocop-ruby.yml }
 
 App-specific config may follow, overriding the house style.
 
