@@ -24,6 +24,12 @@ Performance:
   Exclude:
     - "test/**/*"
 
+Performance/FlatMap:
+  Enabled: true
+
+Performance/UnfreezeString:
+  Enabled: true
+
 # Prefer assert_not over assert !
 Rails/AssertNot:
   Include:
@@ -34,8 +40,11 @@ Rails/RefuteMethods:
   Include:
     - "test/**/*"
 
-Performance/FlatMap:
-  Enabled: true
-
-Performance/UnfreezeString:
-  Enabled: true
+# Use `"foo"` not `'foo'` unless escaping is required
+Style/StringLiterals:
+  Include:
+    - "app/**/*"
+    - "config/**/*"
+    - "lib/**/*"
+    - "test/**/*"
+    - "Gemfile"

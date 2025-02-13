@@ -147,12 +147,6 @@ Layout/SpaceInsideReferenceBrackets:
 Style/StringLiterals:
   Enabled: true
   EnforcedStyle: double_quotes
-  Include:
-    - "app/**/*"
-    - "config/**/*"
-    - "lib/**/*"
-    - "test/**/*"
-    - "Gemfile"
 
 # Detect hard tabs, no hard tabs.
 Layout/IndentationStyle:
