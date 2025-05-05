@@ -1,6 +1,6 @@
 {
   "name": "@37signals/stylelint-config-scss",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "author": "37signals",
   "license": "MIT",
   "description": "37signals house style for SCSS",
@@ -24,12 +24,12 @@
     "index.js"
   ],
   "dependencies": {
-    "stylelint-config-recommended-scss": "^12.0.0"
+    "stylelint-config-recommended-scss": "^14.1.0"
   },
   "devDependencies": {
-    "stylelint": "^15.10.1"
+    "stylelint": "^16.19.1"
   },
   "peerDependencies": {
-    "stylelint": "^15.10.1"
+    "stylelint": "^16.0.0"
   }
 }
