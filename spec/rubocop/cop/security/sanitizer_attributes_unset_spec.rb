@@ -135,6 +135,33 @@ RSpec.describe RuboCop::Cop::Security::SanitizerAttributesUnset, :config do
     RUBY
   end
 
+  it "registers an offense when a later nil assignment clears the attributes policy" do
+    expect_offense(<<~RUBY)
+      class HtmlScrubber < Rails::HTML::PermitScrubber
+        def initialize
+          super
+          self.tags = %w[p a]
+          ^^^^^^^^^^^^^^^^^^^ #{msg("self.attributes")}
+          self.attributes = %w[href]
+          self.attributes = nil
+        end
+      end
+    RUBY
+  end
+
+  it "does not register an offense when a real policy follows a nil assignment" do
+    expect_no_offenses(<<~RUBY)
+      class HtmlScrubber < Rails::HTML::PermitScrubber
+        def initialize
+          super
+          self.tags = %w[p a]
+          self.attributes = nil
+          self.attributes = %w[href]
+        end
+      end
+    RUBY
+  end
+
   it "does not let an inner class's attribute assignment suppress the outer offense" do
     expect_offense(<<~RUBY)
       class HtmlScrubber < Rails::HTML::PermitScrubber

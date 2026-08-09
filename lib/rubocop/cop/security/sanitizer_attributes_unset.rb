@@ -66,22 +66,30 @@ module RuboCop
           }
         PATTERN
 
-        # The same three forms for the attributes allowlist. A literal nil RHS is
+        # The same three forms for the attributes allowlist. A nil literal RHS is
         # excluded throughout: `self.attributes = nil` merely restores the default
         # unset state — exactly what this cop exists to catch — and neither
-        # `+= nil` nor `<< nil` configures a real policy either.
+        # `+= nil` nor `<< nil` configures a real policy either. (`!nil_type?`
+        # rather than `!nil` for precision: NodePattern's bare `nil` also matches
+        # absent children, and only the literal is meant here.)
         def_node_matcher :attributes_setter_stem, <<~PATTERN
           {
-            (send self ${:attributes= :allowed_attributes=} !nil)
-            (op_asgn (send self ${:attributes :allowed_attributes}) _ !nil)
-            (send (send self ${:attributes :allowed_attributes}) :<< !nil)
+            (send self ${:attributes= :allowed_attributes=} !nil_type?)
+            (op_asgn (send self ${:attributes :allowed_attributes}) _ !nil_type?)
+            (send (send self ${:attributes :allowed_attributes}) :<< !nil_type?)
           }
+        PATTERN
+
+        # A plain nil assignment clears any earlier attributes policy back to
+        # the default unset state.
+        def_node_matcher :attributes_reset_stem, <<~PATTERN
+          (send self ${:attributes= :allowed_attributes=} nil_type?)
         PATTERN
 
         def on_class(node)
           if sanitizer_like?(node) && node.body
             nodes = scoped_nodes(node.body)
-            configured = nodes.filter_map { |candidate| setter_stem(attributes_setter_stem(candidate)) }
+            configured = configured_attributes(nodes)
 
             nodes.each do |candidate|
               partner = ATTRIBUTE_PARTNER[setter_stem(tags_setter_stem(candidate))]
@@ -93,6 +101,20 @@ module RuboCop
         end
 
         private
+          # Fold the attribute assignments in source order: a real policy
+          # configures its stem, and a later `= nil` clears it — the sanitizer
+          # then runs in the same default-unset state this cop exists to catch,
+          # so the earlier assignment must not count.
+          def configured_attributes(nodes)
+            nodes.each_with_object([]) do |candidate, configured|
+              if (stem = setter_stem(attributes_setter_stem(candidate)))
+                configured << stem
+              elsif (reset = setter_stem(attributes_reset_stem(candidate)))
+                configured.delete(reset)
+              end
+            end
+          end
+
           def sanitizer_like?(node)
             [ node.identifier.const_name, node.parent_class&.source ].compact
               .any? { |name| name.match?(/scrubber|saniti/i) }
