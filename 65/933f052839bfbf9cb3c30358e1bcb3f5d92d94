@@ -1,0 +1,46 @@
+lib/rubocop/cop/security/unsafe_html_on_dynamic_substrate.rb
+  s_bd5219752b2e96::t_6aa759b7b0d9ae 1-61
+.rspec
+  s_bd5219752b2e96::t_ed5c944256dbbb 1
+spec/spec_helper.rb
+  s_bd5219752b2e96::t_7b6d89161f66f9 1-10
+lib/rubocop/cop/security/sanitizer_attributes_unset.rb
+  s_bd5219752b2e96::t_73b5737f6327e0 1-60
+spec/rubocop/cop/security/unsafe_html_on_dynamic_substrate_spec.rb
+  s_bd5219752b2e96::t_24b618b8f35172 1-56
+Gemfile
+  s_bd5219752b2e96::t_d59c9002348779 1-5
+rubocop-ruby.yml
+  s_bd5219752b2e96::t_a3da3b3868ae6e 1-3
+  s_bd5219752b2e96::t_d6f949db4ce6e7 210-219
+lib/rubocop/thirty_seven_signals/version.rb
+  s_bd5219752b2e96::t_d47b919c87701c 1-5
+.gitignore
+  s_bd5219752b2e96::t_d2c14a867a90e3 1
+spec/rubocop/cop/security/sanitizer_attributes_unset_spec.rb
+  s_bd5219752b2e96::t_884e6112897376 1-70
+lib/rubocop-37signals.rb
+  s_bd5219752b2e96::t_edf3ba6dc4f66d 1-4
+config/default.yml
+  s_bd5219752b2e96::t_cf3ac223adc93a 1-13
+rubocop-37signals.gemspec
+  s_bd5219752b2e96::t_8a4c853bab1991 1-2,12,19-21,23
+lib/rubocop/thirty_seven_signals/plugin.rb
+  s_bd5219752b2e96::t_9a78084792377f 1-28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "65933f052839bfbf9cb3c30358e1bcb3f5d92d94",
+  "prompts": {},
+  "sessions": {
+    "s_bd5219752b2e96": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d1c27314-93fb-458b-9a28-446b0145757d",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Jeremy Daer <jeremy@37signals.com>"
+    }
+  }
+}
