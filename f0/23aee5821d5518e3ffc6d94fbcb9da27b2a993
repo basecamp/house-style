@@ -1,0 +1,27 @@
+lib/rubocop/cop/security/sanitizer_attributes_unset.rb
+  s_d8641c42246ec5::t_486feb00abf65a 111
+  s_d8641c42246ec5::t_ad46096afed95e 69,72-74,77-79,83-86
+  s_d8641c42246ec5::t_718167c4412f22 92
+  s_d8641c42246ec5::t_48770bc30be804 104-110,112-117
+  s_d8641c42246ec5::t_62f25410e82694 87-88
+lib/rubocop-37signals.rb
+  s_d8641c42246ec5::t_e9bcd2a620e4c8 1-5
+spec/rubocop/cop/security/sanitizer_attributes_unset_spec.rb
+  s_d8641c42246ec5::t_120cebae5a59f4 138-164
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "f023aee5821d5518e3ffc6d94fbcb9da27b2a993",
+  "prompts": {},
+  "sessions": {
+    "s_d8641c42246ec5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "46dc07c8-98b2-4fbf-a430-d9e8837942c9",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Jeremy Daer <jeremy@37signals.com>"
+    }
+  }
+}
