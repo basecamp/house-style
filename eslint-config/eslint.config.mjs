@@ -36,8 +36,8 @@ export default {
     "@stylistic/js/keyword-spacing": [ "error" ],
     "curly": [ "error", "multi-line" ],
     "no-restricted-syntax": [ "error",
-      { "selector": "Property[key.name='SAFE_FOR_XML'][value.value=false]", "message": "DOMPurify SAFE_FOR_XML must not be disabled (mXSS risk)." },
-      { "selector": "Property[key.name='ALLOW_DATA_ATTR'][value.value=true]", "message": "DOMPurify ALLOW_DATA_ATTR must not be enabled (attribute-smuggling risk)." }
+      { "selector": ":matches(Property[value.value=false]:matches([key.name='SAFE_FOR_XML'], [key.value='SAFE_FOR_XML']), AssignmentExpression[right.value=false]:matches([left.property.name='SAFE_FOR_XML'], [left.property.value='SAFE_FOR_XML']))", "message": "DOMPurify SAFE_FOR_XML must not be disabled (mXSS risk)." },
+      { "selector": ":matches(Property[value.value=true]:matches([key.name='ALLOW_DATA_ATTR'], [key.value='ALLOW_DATA_ATTR']), AssignmentExpression[right.value=true]:matches([left.property.name='ALLOW_DATA_ATTR'], [left.property.value='ALLOW_DATA_ATTR']))", "message": "DOMPurify ALLOW_DATA_ATTR must not be enabled (attribute-smuggling risk)." }
     ],
     "no-unused-vars": [ "error", { "args": "none", "caughtErrors": "none" } ],
     "no-var": "error",
