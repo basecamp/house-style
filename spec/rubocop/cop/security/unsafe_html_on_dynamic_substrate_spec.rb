@@ -29,6 +29,19 @@ RSpec.describe RuboCop::Cop::Security::UnsafeHtmlOnDynamicSubstrate, :config do
     RUBY
   end
 
+  it "does not register an offense when every interpolation is escaped" do
+    expect_no_offenses(<<~'RUBY')
+      "#{ERB::Util.html_escape(user_name)} joined".html_safe
+    RUBY
+  end
+
+  it "registers an offense when only some interpolations are escaped" do
+    expect_offense(<<~'RUBY'.sub("MSG", RuboCop::Cop::Security::UnsafeHtmlOnDynamicSubstrate::MSG))
+      "#{h(a)}#{b}".html_safe
+      ^^^^^^^^^^^^^^^^^^^^^^^ MSG
+    RUBY
+  end
+
   it "does not register an offense for html_safe on truncate output" do
     expect_no_offenses(<<~RUBY)
       truncate(text).html_safe

@@ -1,5 +1,7 @@
 RSpec.describe RuboCop::Cop::Security::SanitizerAttributesUnset, :config do
-  let(:msg) { described_class::MSG }
+  def msg(attribute_setter)
+    format(described_class::MSG, attribute_setter: attribute_setter)
+  end
 
   it "registers an offense when a scrubber sets tags without attributes" do
     expect_offense(<<~RUBY)
@@ -7,7 +9,7 @@ RSpec.describe RuboCop::Cop::Security::SanitizerAttributesUnset, :config do
         def initialize
           super
           self.tags = %w[p a]
-          ^^^^^^^^^^^^^^^^^^^ #{msg}
+          ^^^^^^^^^^^^^^^^^^^ #{msg("self.attributes")}
         end
       end
     RUBY
@@ -18,7 +20,7 @@ RSpec.describe RuboCop::Cop::Security::SanitizerAttributesUnset, :config do
       class CommentSanitizer
         def configure
           self.allowed_tags = %w[p]
-          ^^^^^^^^^^^^^^^^^^^^^^^^^ #{msg}
+          ^^^^^^^^^^^^^^^^^^^^^^^^^ #{msg("self.allowed_attributes")}
         end
       end
     RUBY
@@ -42,6 +44,45 @@ RSpec.describe RuboCop::Cop::Security::SanitizerAttributesUnset, :config do
         def configure
           self.allowed_tags = %w[p]
           self.allowed_attributes = %w[href]
+        end
+      end
+    RUBY
+  end
+
+  it "registers an offense when tags is paired with a mismatched attribute setter" do
+    expect_offense(<<~RUBY)
+      class HtmlScrubber < Rails::HTML::PermitScrubber
+        def initialize
+          super
+          self.tags = %w[p a]
+          ^^^^^^^^^^^^^^^^^^^ #{msg("self.attributes")}
+          self.allowed_attributes = %w[href]
+        end
+      end
+    RUBY
+  end
+
+  it "registers an offense when attributes is explicitly assigned nil" do
+    expect_offense(<<~RUBY)
+      class HtmlScrubber < Rails::HTML::PermitScrubber
+        def initialize
+          super
+          self.tags = %w[p a]
+          ^^^^^^^^^^^^^^^^^^^ #{msg("self.attributes")}
+          self.attributes = nil
+        end
+      end
+    RUBY
+  end
+
+  it "does not let an inner class's attribute assignment suppress the outer offense" do
+    expect_offense(<<~RUBY)
+      class HtmlScrubber < Rails::HTML::PermitScrubber
+        self.tags = %w[p a]
+        ^^^^^^^^^^^^^^^^^^^ #{msg("self.attributes")}
+
+        class Inner
+          self.attributes = %w[href]
         end
       end
     RUBY

@@ -210,7 +210,7 @@ Style/TrailingCommaInHashLiteral:
 
 # Security tripwires shipped with this gem
 
-# Allowed tags without allowed attributes permits every attribute (srcdoc, data-*, …)
+# Allowed tags without allowed attributes falls back to Loofah's default HTML5 allowlist (data-*, …)
 Security/SanitizerAttributesUnset:
   Enabled: true
 

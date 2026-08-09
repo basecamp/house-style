@@ -1,7 +1,8 @@
 Security/SanitizerAttributesUnset:
   Description: >-
     Sanitizer/scrubber classes that set an allowed-tags list must also set an
-    allowed-attributes list, or every attribute is permitted on the allowed tags.
+    allowed-attributes list; otherwise attribute filtering falls back to Loofah's
+    default HTML5 allowlist instead of an explicit, narrower policy.
   Enabled: true
   VersionAdded: "1.3"
 

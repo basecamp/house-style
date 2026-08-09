@@ -29,6 +29,7 @@ module RuboCop
 
         DYNAMIC_RENDERERS = /markdown|kramdown|redcarpet|commonmark|highlight|rouge|pygment|render/i
         USER_DERIVED_NAMES = /user|param|input|untrusted|unsanitized/i
+        ESCAPE_HELPERS = /\A(?:html_escape|html_escape_once|h|sanitize|escape_html|escapeHTML|json_escape)\z/
 
         def on_send(node)
           substrate =
@@ -46,13 +47,29 @@ module RuboCop
           def dynamic_substrate?(node)
             case node.type
             when :dstr
-              true
+              unescaped_interpolation?(node)
             when :send, :csend
               node.method_name.match?(DYNAMIC_RENDERERS)
             when :lvar, :ivar
               node.children.first.to_s.match?(USER_DERIVED_NAMES)
             else
               false
+            end
+          end
+
+          # An interpolated string is only dynamic if at least one interpolation
+          # is not wrapped in a recognized escaping helper. `"#{h(x)} joined"` is
+          # the class's own documented safe form and must not trip; `"#{x}"` and
+          # `"#{h(a)}#{b}"` still do.
+          def unescaped_interpolation?(node)
+            interpolations = node.children.select(&:begin_type?)
+            interpolations.any? { |interpolation| !escaped_interpolation?(interpolation) }
+          end
+
+          def escaped_interpolation?(node)
+            node.children.all? do |expression|
+              (expression.send_type? || expression.csend_type?) \
+                && ESCAPE_HELPERS.match?(expression.method_name.to_s)
             end
           end
       end
