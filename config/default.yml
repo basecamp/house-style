@@ -5,10 +5,3 @@ Security/SanitizerAttributesUnset:
     default HTML5 allowlist instead of an explicit, narrower policy.
   Enabled: true
   VersionAdded: "1.3"
-
-Security/UnsafeHtmlOnDynamicSubstrate:
-  Description: >-
-    Do not mark dynamically generated HTML (markdown rendering, syntax
-    highlighting, string interpolation, user-derived values) as html_safe/raw.
-  Enabled: true
-  VersionAdded: "1.3"

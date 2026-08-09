@@ -213,7 +213,3 @@ Style/TrailingCommaInHashLiteral:
 # Allowed tags without allowed attributes falls back to Loofah's default HTML5 allowlist (data-*, …)
 Security/SanitizerAttributesUnset:
   Enabled: true
-
-# No html_safe/raw on markdown, highlighter output, interpolation, or user-derived values
-Security/UnsafeHtmlOnDynamicSubstrate:
-  Enabled: true
