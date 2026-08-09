@@ -1,3 +1,6 @@
+plugins:
+  - rubocop-37signals
+
 inherit_mode:
   merge:
     - Exclude
@@ -203,4 +206,14 @@ Style/TrailingCommaInArrayLiteral:
   Enabled: true
 
 Style/TrailingCommaInHashLiteral:
+  Enabled: true
+
+# Security tripwires shipped with this gem
+
+# Allowed tags without allowed attributes permits every attribute (srcdoc, data-*, …)
+Security/SanitizerAttributesUnset:
+  Enabled: true
+
+# No html_safe/raw on markdown, highlighter output, interpolation, or user-derived values
+Security/UnsafeHtmlOnDynamicSubstrate:
   Enabled: true
