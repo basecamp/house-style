@@ -35,6 +35,10 @@ export default {
     "@stylistic/js/space-infix-ops": [ "error" ],
     "@stylistic/js/keyword-spacing": [ "error" ],
     "curly": [ "error", "multi-line" ],
+    "no-restricted-syntax": [ "error",
+      { "selector": "Property[key.name='SAFE_FOR_XML'][value.value=false]", "message": "DOMPurify SAFE_FOR_XML must not be disabled (mXSS risk)." },
+      { "selector": "Property[key.name='ALLOW_DATA_ATTR'][value.value=true]", "message": "DOMPurify ALLOW_DATA_ATTR must not be enabled (attribute-smuggling risk)." }
+    ],
     "no-unused-vars": [ "error", { "args": "none", "caughtErrors": "none" } ],
     "no-var": "error",
     "prefer-const": [ "error", { "destructuring": "all" } ]
