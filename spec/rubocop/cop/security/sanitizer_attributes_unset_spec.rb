@@ -26,6 +26,66 @@ RSpec.describe RuboCop::Cop::Security::SanitizerAttributesUnset, :config do
     RUBY
   end
 
+  it "registers an offense when tags is extended with += and attributes is unset" do
+    expect_offense(<<~RUBY)
+      class HtmlScrubber < Rails::HTML::PermitScrubber
+        def initialize
+          super
+          self.tags += %w[iframe audio video]
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ #{msg("self.attributes")}
+        end
+      end
+    RUBY
+  end
+
+  it "registers an offense when tags is extended with << and attributes is unset" do
+    expect_offense(<<~RUBY)
+      class HtmlScrubber < Rails::HTML::PermitScrubber
+        def initialize
+          super
+          self.tags << "iframe"
+          ^^^^^^^^^^^^^^^^^^^^^ #{msg("self.attributes")}
+        end
+      end
+    RUBY
+  end
+
+  it "does not register an offense when tags += pairs with an attributes setter" do
+    expect_no_offenses(<<~RUBY)
+      class HtmlScrubber < Rails::HTML::PermitScrubber
+        def initialize
+          super
+          self.tags += %w[iframe]
+          self.attributes = %w[src]
+        end
+      end
+    RUBY
+  end
+
+  it "does not register an offense when tags += pairs with an attributes += extend" do
+    expect_no_offenses(<<~RUBY)
+      class HtmlScrubber < Rails::HTML::PermitScrubber
+        def initialize
+          super
+          self.tags += %w[iframe]
+          self.attributes += %w[src]
+        end
+      end
+    RUBY
+  end
+
+  it "does not register an offense when tags << pairs with an attributes << extend" do
+    expect_no_offenses(<<~RUBY)
+      class HtmlScrubber < Rails::HTML::PermitScrubber
+        def initialize
+          super
+          self.tags << "iframe"
+          self.attributes << "src"
+        end
+      end
+    RUBY
+  end
+
   it "does not register an offense when both tags and attributes are set" do
     expect_no_offenses(<<~RUBY)
       class HtmlScrubber < Rails::HTML::PermitScrubber

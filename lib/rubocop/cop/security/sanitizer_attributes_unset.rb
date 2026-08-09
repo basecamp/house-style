@@ -15,12 +15,26 @@ module RuboCop
       # attributes is an easy XSS foothold to overlook, so require an explicit
       # allowed-attributes policy alongside the allowed-tags one.
       #
+      # The allowlist may be assigned outright or extended in place; both the
+      # `self.tags = ...` assignment and the `self.tags += ...` / `self.tags << ...`
+      # extend forms configure the tag policy and equally require a matching
+      # attributes policy. Extending an inherited tag allowlist without setting
+      # attributes carries the same risk as assigning one.
+      #
       # @example
       #   # bad
       #   class HtmlScrubber < Rails::HTML::PermitScrubber
       #     def initialize
       #       super
       #       self.tags = %w[ p a img ]
+      #     end
+      #   end
+      #
+      #   # bad — extending the inherited allowlist leaves attributes unset too
+      #   class HtmlScrubber < Rails::HTML::PermitScrubber
+      #     def initialize
+      #       super
+      #       self.tags += %w[ iframe audio video ]
       #     end
       #   end
       #
@@ -40,26 +54,39 @@ module RuboCop
         # Each tag setter is only satisfied by its matching attribute setter.
         ATTRIBUTE_PARTNER = { tags: :attributes, allowed_tags: :allowed_attributes }.freeze
 
-        def_node_matcher :tags_assignment?, <<~PATTERN
-          (send self {:tags= :allowed_tags=} _)
+        # Match the tag allowlist being configured in any of three forms:
+        # `self.tags = x` (a `:tags=` send), `self.tags += x` (an op-asgn over the
+        # `:tags` reader), and `self.tags << x` (a `<<` send on the reader).
+        # Captures the stem symbol (`:tags` / `:allowed_tags`), `=` chomped off.
+        def_node_matcher :tags_setter_stem, <<~PATTERN
+          {
+            (send self ${:tags= :allowed_tags=} _)
+            (op_asgn (send self ${:tags :allowed_tags}) _ _)
+            (send (send self ${:tags :allowed_tags}) :<< _)
+          }
         PATTERN
 
-        # A wildcard RHS would let `self.attributes = nil` count as a configured
-        # allowlist, but assigning nil merely restores the default unset state —
-        # exactly what this cop exists to catch — so exclude a literal nil.
-        def_node_matcher :attributes_assignment?, <<~PATTERN
-          (send self {:attributes= :allowed_attributes=} !nil)
+        # The same three forms for the attributes allowlist. A literal nil RHS is
+        # excluded throughout: `self.attributes = nil` merely restores the default
+        # unset state — exactly what this cop exists to catch — and neither
+        # `+= nil` nor `<< nil` configures a real policy either.
+        def_node_matcher :attributes_setter_stem, <<~PATTERN
+          {
+            (send self ${:attributes= :allowed_attributes=} !nil)
+            (op_asgn (send self ${:attributes :allowed_attributes}) _ !nil)
+            (send (send self ${:attributes :allowed_attributes}) :<< !nil)
+          }
         PATTERN
 
         def on_class(node)
           if sanitizer_like?(node) && node.body
-            sends = scoped_sends(node.body)
-            configured = sends.filter_map { |send| setter_stem(send.method_name) if attributes_assignment?(send) }
+            nodes = scoped_nodes(node.body)
+            configured = nodes.filter_map { |candidate| setter_stem(attributes_setter_stem(candidate)) }
 
-            sends.each do |send|
-              partner = ATTRIBUTE_PARTNER[setter_stem(send.method_name)]
-              if tags_assignment?(send) && !configured.include?(partner)
-                add_offense(send, message: format(MSG, attribute_setter: "self.#{partner}"))
+            nodes.each do |candidate|
+              partner = ATTRIBUTE_PARTNER[setter_stem(tags_setter_stem(candidate))]
+              if partner && !configured.include?(partner)
+                add_offense(candidate, message: format(MSG, attribute_setter: "self.#{partner}"))
               end
             end
           end
@@ -71,19 +98,20 @@ module RuboCop
               .any? { |name| name.match?(/scrubber|saniti/i) }
           end
 
-          # Collect send nodes in the class's own scope without descending into
-          # nested class/module/sclass bodies, so an assignment in an inner class
-          # neither suppresses nor is misattributed to the outer sanitizer.
-          def scoped_sends(node, collected = [])
-            collected << node if node.send_type?
+          # Collect the send and op-asgn nodes in the class's own scope without
+          # descending into nested class/module/sclass bodies, so an assignment in
+          # an inner class neither suppresses nor is misattributed to the outer
+          # sanitizer. Op-asgn carries the `+=` extend form, which is not a send.
+          def scoped_nodes(node, collected = [])
+            collected << node if node.send_type? || node.op_asgn_type?
             unless node.class_type? || node.module_type? || node.sclass_type?
-              node.each_child_node { |child| scoped_sends(child, collected) }
+              node.each_child_node { |child| scoped_nodes(child, collected) }
             end
             collected
           end
 
-          def setter_stem(method_name)
-            method_name.to_s.chomp("=").to_sym
+          def setter_stem(captured)
+            captured&.to_s&.chomp("=")&.to_sym
           end
       end
     end

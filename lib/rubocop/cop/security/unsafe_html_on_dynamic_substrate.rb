@@ -10,6 +10,30 @@ module RuboCop
       # so safe-helper chains like `truncate(text).html_safe` and static
       # strings like `"&nbsp;".html_safe` do not trip.
       #
+      # SCOPE — this is a DIRECT-SINK tripwire, not a taint tracker. It fires
+      # only when the dynamic substrate is the *immediate* receiver of
+      # `html_safe`/`raw` (a renderer call or an interpolation applied directly).
+      # It intentionally does NOT catch value-laundered forms, where the dynamic
+      # value has passed through an intervening binding or call before being
+      # marked safe:
+      #
+      #   html = markdown(x); html.html_safe          # renderer output via a local
+      #   content_tag(:div, markdown(x)).html_safe    # renderer wrapped in another call
+      #   ("<b>" + user + "</b>").html_safe           # operator/format-built string
+      #
+      # A value-flow-free AST cop cannot distinguish these from their safe
+      # equivalents (a sanitized local, a `content_tag` of escaped content, a
+      # concatenation of literals) without disabling-grade false positives. Those
+      # laundered paths are covered by the sanitizer-chokepoint and code-review
+      # layers, not here — do not read a clean run from this cop as assurance
+      # that html_safe usage is safe.
+      #
+      # KNOWN FALSE POSITIVES — the receiver test is a name/shape heuristic, so a
+      # few safe forms trip and should be silenced with `# rubocop:disable`:
+      # interpolation of constant or numeric values (`"© #{Time.current.year}".html_safe`),
+      # and substring matches on receiver names (e.g. the Rails `highlight` helper,
+      # matched by the `highlight` renderer pattern).
+      #
       # @example
       #   # bad
       #   markdown(post.body).html_safe
