@@ -1,0 +1,29 @@
+eslint-config/test/fixtures/dompurify-guard.js
+  s_8a881e0b15478b::t_5416a6d86c1622 5-6,8-10,19-22,38-41,57,59,80-121
+README.md
+  s_8a881e0b15478b::t_cbc48ae8365d1f 65-77,88,90-99,105-130
+eslint-config/eslint.config.mjs
+  s_8a881e0b15478b::t_cf294ad290a5d0 62
+  s_8a881e0b15478b::t_13883e84ef4fbc 73-74
+  s_8a881e0b15478b::t_87bcfcf83a7051 7-17,20-24
+  s_8a881e0b15478b::t_3d8ac12415eb57 48-55,57
+  s_8a881e0b15478b::t_df60950e058b17 66
+eslint-config/test/dompurify-guard.mjs
+  s_8a881e0b15478b::t_1199910cd7adee 3-11,20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "eb809b190e4ca6b248d1d9a98fe4c871f089ac81",
+  "prompts": {},
+  "sessions": {
+    "s_8a881e0b15478b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5a5009c2-58bf-4654-8c0c-c3163395286d",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jeremy Daer <jeremy@37signals.com>"
+    }
+  }
+}
