@@ -97,6 +97,18 @@ const FORCE_KEEP_ATTR = "AssignmentExpression" +
 // ever patches the options we happen to guard.
 const SPREAD_IN_SINK_CONFIG = `${SANITIZE} > ObjectExpression > SpreadElement`
 
+// Removing ALLOW_DATA_ATTR from a persistent config restores DOMPurify's default,
+// which is the unsafe one — so `delete` is a write, and the assignment rule above
+// doesn't see it. HEY sets this option on Trix's shared config specifically
+// because it decides what survives inside <template> content, where Trix's own
+// element walk never descends.
+//
+// ALLOW_DATA_ATTR only, deliberately. SAFE_FOR_XML defaults to true, so deleting
+// that one restores a safe default and guarding it would be guarding a non-event.
+// The asymmetry between the two defaults is the whole reason this guard exists.
+const REMOVAL_OF_ALLOW_DATA_ATTR = "UnaryExpression[operator='delete'] > MemberExpression" +
+  ":matches([property.name='ALLOW_DATA_ATTR'], [property.value='ALLOW_DATA_ATTR'])"
+
 const dompurifyGuard = [
   {
     "selector": carryingAnythingBut("SAFE_FOR_XML", true),
@@ -113,6 +125,10 @@ const dompurifyGuard = [
   {
     "selector": SPREAD_IN_SINK_CONFIG,
     "message": "A DOMPurify.sanitize config must not spread another object: its contents are invisible here, so the options this guard checks can be set by something it cannot read. Spreading Trix's config, for instance, merges in SAFE_FOR_XML: false and RETURN_DOM: true — the second stops sanitize returning a string at all. Write the options out."
+  },
+  {
+    "selector": REMOVAL_OF_ALLOW_DATA_ATTR,
+    "message": "Deleting ALLOW_DATA_ATTR from a persistent DOMPurify config restores its default, which is true — every data-* attribute admitted again, ahead of any ALLOWED_ATTR allowlist. Assign false rather than removing it."
   },
   {
     "selector": SET_CONFIG,

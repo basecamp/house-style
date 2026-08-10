@@ -93,6 +93,11 @@ Trix.config.dompurify.ALLOW_DATA_ATTR = true // UNSAFE
 Trix.config.dompurify.SAFE_FOR_XML &&= true // UNSAFE
 Trix.config.dompurify.ALLOW_DATA_ATTR ??= false // UNSAFE
 
+// Unsafe: removing the option restores DOMPurify's unsafe default. `delete` is a
+// write the assignment rule above can't see.
+delete Trix.config.dompurify.ALLOW_DATA_ATTR // UNSAFE
+delete Trix.config.dompurify["ALLOW_DATA_ATTR"] // UNSAFE
+
 // ---------------------------------------------------------------------------
 // Not guarded, deliberately.
 //

@@ -85,7 +85,7 @@ import DOMPurify from "dompurify"
 DOMPurify.sanitize(dirty, { ALLOW_DATA_ATTR: false, SAFE_FOR_XML: true })
 ```
 
-Six rules, each aimed at a mistake someone could make on a normal day:
+Seven rules, each aimed at a mistake someone could make on a normal day:
 
 | Rule | The mistake |
 |---|---|
@@ -95,6 +95,7 @@ Six rules, each aimed at a mistake someone could make on a normal day:
 | no spread anywhere in a `sanitize()` config | what a spread merges in can't be read here, so the options these rules check can be set by something they can't see |
 | no `setConfig` | it voids every per-call config in the app |
 | no `forceKeepAttr` in a hook | it re-keeps an attribute the config just rejected, so `ALLOW_DATA_ATTR` stops deciding |
+| no `delete` of `ALLOW_DATA_ATTR` | removing it restores the default, which is the unsafe one. `delete` is a write the value rule can't see |
 
 The spread rule is blanket, and briefly wasn't. It was narrowed to "no spread
 *after* a guarded option" on the reasoning that `{ ...opts, ALLOW_DATA_ATTR: false }`
@@ -126,9 +127,10 @@ Note the flag that turns off config lookup differs by config format:
 
 #### What it deliberately doesn't catch
 
-Aliasing, renamed imports, `.call`/`.apply`/`.bind`, computed keys, `delete` of a
-guarded option, and handing the module to another function all defeat this guard,
-and all are left alone.
+Aliasing, renamed imports, `.call`/`.apply`/`.bind`, computed keys, and handing
+the module to another function all defeat this guard, and all are left alone.
+(`delete` used to be on this list. It came off once the option it removes was
+shown to decide something — see below.)
 
 The reason is the shape of the edit, not who can make it. Every rule above exists
 to catch a slip by someone with full commit access — that is who writes this code,
@@ -139,6 +141,16 @@ security option, cancelling `ALLOW_DATA_ATTR: false` with a computed key beside 
 Nobody arrives at one by accident, and someone who has decided to evade can edit
 the sink directly — which no selector reaches. Rules against them cost a reader's
 attention and buy nothing.
+
+`delete` looked like one of these and isn't, which is the useful correction. It
+was declined twice — first because Trix's element walk was thought to strip every
+`data-*` before DOMPurify saw it, then because nothing set the option anyway. The
+first was measured outside `<template>` content and generalised: inside one the
+walk never descends and the option decides exactly that case. HEY now sets it for
+that reason, so removing it is a live regression rather than a hypothetical. Only
+`ALLOW_DATA_ATTR` is guarded — deleting `SAFE_FOR_XML` restores a default of
+*true*, which is the safe value, and the asymmetry between those two defaults is
+what this guard is built around.
 
 That also marks the boundary of the instrument. A selector reads source text at
 the call sites its matcher recognizes; it cannot see an option removed at runtime,
