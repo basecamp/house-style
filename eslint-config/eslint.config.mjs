@@ -72,16 +72,21 @@ const FORCE_KEEP_ATTR = "AssignmentExpression" +
   ":matches([left.property.name='forceKeepAttr'], [left.property.value='forceKeepAttr'])" +
   ":not([operator='='][right.value=false][right.raw='false'])"
 
-// A spread *after* a guarded option overrides the safe literal the rules above
-// just read, and its contents are invisible to lint. The sibling combinator is
-// what makes this precise: `{ ...defaults, ALLOW_DATA_ATTR: false }` is safe —
-// the literal comes last and wins — so only a spread that follows the literal
-// is flagged.
-const GUARDED_OPTION = ":matches(" +
-  "[key.name='SAFE_FOR_XML'], [key.value='SAFE_FOR_XML'], " +
-  "[key.name='ALLOW_DATA_ATTR'], [key.value='ALLOW_DATA_ATTR']" +
-")"
-const SPREAD_AFTER_GUARDED_OPTION = `Property${GUARDED_OPTION} ~ SpreadElement`
+// No spread anywhere in a sanitize config. This was briefly narrowed to "only a
+// spread *after* a guarded option", on the reasoning that
+// `{ ...defaults, ALLOW_DATA_ATTR: false }` is safe because the literal comes
+// last and wins. That reasoning was wrong, and instructively so: the literal
+// does win, but it is not the only thing in the object.
+//
+// Spreading Trix's own config — `{ ...Trix.config.dompurify, ALLOW_DATA_ATTR: false }`,
+// and Trix is imported in bc3 — merges in `SAFE_FOR_XML: false`, the exact value
+// the first rule forbids, plus `RETURN_DOM: true`, which stops sanitize
+// returning a string at all. Both invisible here.
+//
+// The closed form is the one that matches what this guard is for: the config has
+// to be written out where it can be read. Checking one option at a time only
+// ever patches the options we happen to guard.
+const SPREAD_IN_SINK_CONFIG = `${SANITIZE} > ObjectExpression > SpreadElement`
 
 const dompurifyGuard = [
   {
@@ -97,8 +102,8 @@ const dompurifyGuard = [
     "message": "DOMPurify.sanitize must be called as sanitize(dirty, { ALLOW_DATA_ATTR: false, ... }): two arguments written out, neither of them a spread, with the config an inline object literal carrying ALLOW_DATA_ATTR: false among its own top-level keys. DOMPurify defaults ALLOW_DATA_ATTR to true, and an omitted, by-reference, nested, or extra-argument config leaves that default in place. A forwarding wrapper — `sanitize(...args, safeConfig)` — is the easy accident: args[1] arrives as the real config and the safe one is ignored."
   },
   {
-    "selector": SPREAD_AFTER_GUARDED_OPTION,
-    "message": "A spread after SAFE_FOR_XML or ALLOW_DATA_ATTR overrides the safe literal, and lint can't read what's in it. Put the spread first — `{ ...defaults, ALLOW_DATA_ATTR: false }` — so the literal wins."
+    "selector": SPREAD_IN_SINK_CONFIG,
+    "message": "A DOMPurify.sanitize config must not spread another object: its contents are invisible here, so the options this guard checks can be set by something it cannot read. Spreading Trix's config, for instance, merges in SAFE_FOR_XML: false and RETURN_DOM: true — the second stops sanitize returning a string at all. Write the options out."
   },
   {
     "selector": SET_CONFIG,

@@ -42,11 +42,25 @@ for (const fixture of FIXTURES) {
   const missed = expected.filter((line) => !reported.includes(line))
   const spurious = reported.filter((line) => !expected.includes(line))
 
+  // The separator's contract is positional, and neither check above can see it:
+  // appending a tagged case to the end of the file puts it under a banner that
+  // promises the opposite, and everything still passes. That happened, so it's
+  // checked.
+  const separator = lines.findIndex((line) => line.startsWith("// Not guarded, deliberately")) + 1
+  if (separator === 0) {
+    console.error(`${fixture}: has lost its "Not guarded, deliberately" section`)
+  }
+  const stragglers = separator > 0 ? expected.filter((line) => line > separator) : []
+
   for (const line of missed) {
     console.error(`${fixture}:${line}: tagged UNSAFE but the guard let it through — ${lines[line - 1].trim()}`)
   }
   for (const line of spurious) {
     console.error(`${fixture}:${line}: reported but not tagged UNSAFE — ${lines[line - 1].trim()}`)
+  }
+  for (const line of stragglers) {
+    console.error(`${fixture}:${line}: tagged UNSAFE below the "Not guarded, deliberately" separator, ` +
+      `where the section promises the opposite — move it up into a tagged section`)
   }
 
   // A fixture whose syntax the parser rejects reports nothing and would
@@ -56,7 +70,7 @@ for (const fixture of FIXTURES) {
     console.error(`${fixture}:${message.line}: parse error — ${message.message}`)
   }
 
-  failures += missed.length + spurious.length + fatal.length
+  failures += missed.length + spurious.length + stragglers.length + fatal.length + (separator === 0 ? 1 : 0)
   caught += expected.length - missed.length
   clean += lines.length - expected.length
 }

@@ -16,10 +16,6 @@ DOMPurify.sanitize(dirty, { "ALLOW_DATA_ATTR": false, SAFE_FOR_XML: true, ADD_AT
 DOMPurify["sanitize"](dirty, { ["ALLOW_DATA_ATTR"]: false })
 window.DOMPurify.sanitize(dirty, { ALLOW_DATA_ATTR: false })
 
-// Safe: a spread *before* the literal, which is the ordering that makes the
-// literal win. Only a spread that follows a guarded option is flagged.
-DOMPurify.sanitize(dirty, { ...defaults, ALLOW_DATA_ATTR: false })
-
 // Safe: sanitizers that aren't DOMPurify.
 Trix.config.dompurify.sanitize(dirty)
 sanitizer.sanitize(dirty)
@@ -58,8 +54,12 @@ window.DOMPurify.sanitize(dirty) // UNSAFE
 window["DOMPurify"]["sanitize"](dirty) // UNSAFE
 globalThis.DOMPurify.setConfig({}) // UNSAFE
 
-// Unsafe: a spread after a guarded option overrides the literal just read.
+// Unsafe: any spread in a sanitize config. Order doesn't save it — a leading
+// spread still merges in whatever it carries, and Trix's own config carries
+// SAFE_FOR_XML: false and RETURN_DOM: true.
 DOMPurify.sanitize(dirty, { ALLOW_DATA_ATTR: false, ...config }) // UNSAFE
+DOMPurify.sanitize(dirty, { ...defaults, ALLOW_DATA_ATTR: false }) // UNSAFE
+DOMPurify.sanitize(dirty, { ...Trix.config.dompurify, ALLOW_DATA_ATTR: false }) // UNSAFE
 DOMPurify.sanitize(dirty, { SAFE_FOR_XML: true, ...config, ALLOW_DATA_ATTR: false }) // UNSAFE
 
 // Unsafe: a hook that force-keeps an attribute the config just rejected.
