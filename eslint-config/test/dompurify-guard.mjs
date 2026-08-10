@@ -75,8 +75,48 @@ for (const fixture of FIXTURES) {
   clean += lines.length - expected.length
 }
 
+// Every rule has to catch something no other rule catches.
+//
+// This is the check the guard didn't have while it grew to ten selectors. Both
+// assertions above pass just as happily with a redundant rule in the set: adding
+// one changes nothing about which lines are reported, so nothing objects, and
+// the cost only shows up later as a config no one wants to touch.
+//
+// Failing here means one of two things, and they want opposite fixes. Either the
+// rule is genuinely covered by another and should go — or it catches something
+// real that the fixture doesn't demonstrate yet, in which case add the case that
+// tells them apart. "It felt safer to keep" isn't one of the options.
+const [ , ...guard ] = houseStyle.rules["no-restricted-syntax"]
+const fixture = fileURLToPath(new URL(FIXTURES[0], import.meta.url))
+const tagged = readFileSync(fixture, "utf8").split("\n")
+  .flatMap((line, index) => line.includes("// UNSAFE") ? [ index + 1 ] : [])
+
+const reportedBy = async (rules) => {
+  const [ result ] = await new ESLint({
+    overrideConfigFile: true,
+    overrideConfig: [ { ...houseStyle, rules: { "no-restricted-syntax": [ "error", ...rules ] } } ]
+  }).lintFiles([ fixture ])
+
+  return new Set(result.messages
+    .filter((message) => message.ruleId === "no-restricted-syntax")
+    .map((message) => message.line))
+}
+
+const withEveryRule = await reportedBy(guard)
+
+for (const [ index, rule ] of guard.entries()) {
+  const withoutIt = await reportedBy(guard.filter((_, other) => other !== index))
+  const uniquely = tagged.filter((line) => withEveryRule.has(line) && !withoutIt.has(line))
+
+  if (uniquely.length === 0) {
+    console.error(`rule ${index + 1} catches nothing the other rules don't — drop it, or add the fixture case that distinguishes it:`)
+    console.error(`  ${rule.selector}`)
+    failures += 1
+  }
+}
+
 if (failures > 0) {
   process.exit(1)
 } else {
-  console.log(`dompurify-guard: ${caught} bypasses caught, ${clean} safe lines clean`)
+  console.log(`dompurify-guard: ${caught} bypasses caught, ${clean} safe lines clean, ${guard.length} rules each load-bearing`)
 }
