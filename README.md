@@ -89,8 +89,8 @@ Six rules, each aimed at a mistake someone could make on a normal day:
 
 | Rule | The mistake |
 |---|---|
-| `SAFE_FOR_XML` must carry a literal `true` | copying a config from elsewhere, deleting a line |
-| `ALLOW_DATA_ATTR` must carry a literal `false` | same — and the default is the unsafe one |
+| `SAFE_FOR_XML`, *where written*, must carry a literal `true` | turning it off to make an mXSS false positive go away. Omitting it is fine and unguarded — this default is already the safe one |
+| `ALLOW_DATA_ATTR` must carry a literal `false`, at every sink | omitting it. This default is the *unsafe* one, so a config that never mentions the option is exactly as open as one that sets `true` |
 | `sanitize()` config must be written inline | hoisting the config to a `const`, which is what hid the bug above |
 | no spread anywhere in a `sanitize()` config | what a spread merges in can't be read here, so the options these rules check can be set by something they can't see |
 | no `setConfig` | it voids every per-call config in the app |
