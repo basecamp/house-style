@@ -85,31 +85,58 @@ import DOMPurify from "dompurify"
 DOMPurify.sanitize(dirty, { ALLOW_DATA_ATTR: false, SAFE_FOR_XML: true })
 ```
 
-Five rules, each aimed at a mistake someone could make on a normal day:
+Six rules, each aimed at a mistake someone could make on a normal day:
 
 | Rule | The mistake |
 |---|---|
 | `SAFE_FOR_XML` must carry a literal `true` | copying a config from elsewhere, deleting a line |
 | `ALLOW_DATA_ATTR` must carry a literal `false` | same — and the default is the unsafe one |
 | `sanitize()` config must be written inline | hoisting the config to a `const`, which is what hid the bug above |
-| no spread *after* a guarded option | `{ ALLOW_DATA_ATTR: false, ...opts }` silently loses. `{ ...opts, ALLOW_DATA_ATTR: false }` is fine |
+| no spread anywhere in a `sanitize()` config | what a spread merges in can't be read here, so the options these rules check can be set by something they can't see |
 | no `setConfig` | it voids every per-call config in the app |
+| no `forceKeepAttr` in a hook | it re-keeps an attribute the config just rejected, so `ALLOW_DATA_ATTR` stops deciding |
 
-Run it with `--no-inline-config`, so a call site can't excuse itself with
-`// eslint-disable-line no-restricted-syntax`:
+The spread rule is blanket, and briefly wasn't. It was narrowed to "no spread
+*after* a guarded option" on the reasoning that `{ ...opts, ALLOW_DATA_ATTR: false }`
+is safe because the literal comes last and wins. The literal does win — but it
+isn't the only thing in the object. Spreading Trix's own config merges in
+`SAFE_FOR_XML: false`, the exact value the first rule forbids, plus
+`RETURN_DOM: true`, which stops `sanitize` returning a string at all. Checking
+one option at a time only ever patches the options we happen to guard.
+
+Run it with `--no-inline-config` and `--no-ignore`, so neither a call site nor an
+ignore file can drop something from the gate while the run still exits `0`:
 
 ```bash
-eslint --no-inline-config app/javascript
+eslint --no-inline-config --no-ignore app/javascript
 ```
+
+Both flags want a dedicated run — `--no-eslintrc` against a DOMPurify-only
+config. Adding them to an existing style sweep drags every vendored and ignored
+file into the full ruleset, which in bc3 is 1142 unrelated errors.
 
 #### What it deliberately doesn't catch
 
-Aliasing, renamed imports, `.call`/`.apply`/`.bind`, computed keys, and handing
-the module to another function all defeat this guard, and all are left alone.
-They need deliberately evasive code, written by someone who already holds commit
-access — and that actor has no reason to fight the sanitizer's config when they
-could edit the sink. Rules against them cost a reader's attention and buy
-nothing.
+Aliasing, renamed imports, `.call`/`.apply`/`.bind`, computed keys, `delete` of a
+guarded option, and handing the module to another function all defeat this guard,
+and all are left alone.
+
+The reason is the shape of the edit, not who can make it. Every rule above exists
+to catch a slip by someone with full commit access — that is who writes this code,
+and "they could have committed it anyway" would disqualify the entire guard. These
+forms are different: each needs a deliberate choice, made on the line, against a
+literal you just wrote. Renaming the module, detaching the method, deleting a
+security option, cancelling `ALLOW_DATA_ATTR: false` with a computed key beside it.
+Nobody arrives at one by accident, and someone who has decided to evade can edit
+the sink directly — which no selector reaches. Rules against them cost a reader's
+attention and buy nothing.
+
+That also marks the boundary of the instrument. A selector reads source text at
+the call sites its matcher recognizes; it cannot see an option removed at runtime,
+a default that moves under a dependency bump, or a config vendored inside a
+bundle. Those need a test that runs the sanitizer on real markup and asserts what
+comes back. Reach for the lint to hold a shape everywhere, the test to hold a
+behaviour — neither is "the guarantee" on its own.
 
 `test/fixtures/dompurify-guard.js` lists those forms in a **"Not guarded,
 deliberately"** section, untagged, so a new selector that catches one of them
