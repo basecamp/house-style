@@ -62,12 +62,19 @@ export default [
 
 ### DOMPurify guard
 
-The config carries a `no-restricted-syntax` guard over DOMPurify, because
-DOMPurify's defaults are not the ones we want. `ALLOW_DATA_ATTR` is read as
-`cfg.ALLOW_DATA_ATTR !== false`, so leaving it out keeps `data-*` smuggling
-open — and a `data-*` attribute is accepted *ahead of* `ALLOWED_ATTR`, so an
-allowlist of attributes does not close it. `setConfig` installs a persistent
-config, after which every per-call config is skipped entirely.
+**This is a review aid, not a security boundary.** It catches a mistake on its
+way past a reviewer. It does not stop anyone, and it can't: defeating it takes
+one alias, and whoever can commit that alias can also just call `innerHTML`.
+Read the next section before adding a rule to it.
+
+The reason it exists at all is that DOMPurify's defaults are not the ones we
+want. `ALLOW_DATA_ATTR` is read as `cfg.ALLOW_DATA_ATTR !== false`, so leaving
+it out keeps `data-*` smuggling open — and a `data-*` attribute is accepted
+*ahead of* `ALLOWED_ATTR`, so a tight attribute allowlist reads as protection
+it isn't giving. That combination hid a real bug in Basecamp: an allowlist of
+seven attributes, and a complete `data-controller` / `data-action` Stimulus
+binding sailing through it into `innerHTML`. `setConfig` is the other trap — it
+installs a persistent config, after which every per-call config is skipped.
 
 Forbidding the unsafe value is therefore not enough; the safe value has to be
 demanded at each sink. Sanitize like this:
@@ -78,22 +85,49 @@ import DOMPurify from "dompurify"
 DOMPurify.sanitize(dirty, { ALLOW_DATA_ATTR: false, SAFE_FOR_XML: true })
 ```
 
-Exactly two arguments, the config an inline object literal. The guard rejects a
-by-reference config, a nested or spread config, a computed key, `setConfig`, a
-renamed import, and any alias or stored reference to `DOMPurify` or its
-`sanitize`. Those are all forms whose effective config ESLint cannot read: the
-guard refuses what it cannot verify rather than trusting it.
+Five rules, each aimed at a mistake someone could make on a normal day:
 
-Run the security lint with `--no-inline-config` so a call site can't excuse
-itself with `// eslint-disable-line no-restricted-syntax`:
+| Rule | The mistake |
+|---|---|
+| `SAFE_FOR_XML` must carry a literal `true` | copying a config from elsewhere, deleting a line |
+| `ALLOW_DATA_ATTR` must carry a literal `false` | same — and the default is the unsafe one |
+| `sanitize()` config must be written inline | hoisting the config to a `const`, which is what hid the bug above |
+| no spread *after* a guarded option | `{ ALLOW_DATA_ATTR: false, ...opts }` silently loses. `{ ...opts, ALLOW_DATA_ATTR: false }` is fine |
+| no `setConfig` | it voids every per-call config in the app |
+
+Run it with `--no-inline-config`, so a call site can't excuse itself with
+`// eslint-disable-line no-restricted-syntax`:
 
 ```bash
 eslint --no-inline-config app/javascript
 ```
 
-`npm test` in `eslint-config/` checks the guard against fixtures covering every
-bypass found so far, in both directions — each one must be reported, and each
-safe form must stay clean.
+#### What it deliberately doesn't catch
+
+Aliasing, renamed imports, `.call`/`.apply`/`.bind`, computed keys, and handing
+the module to another function all defeat this guard, and all are left alone.
+They need deliberately evasive code, written by someone who already holds commit
+access — and that actor has no reason to fight the sanitizer's config when they
+could edit the sink. Rules against them cost a reader's attention and buy
+nothing.
+
+`test/fixtures/dompurify-guard.js` lists those forms in a **"Not guarded,
+deliberately"** section, untagged, so a new selector that catches one of them
+turns `npm test` red instead of landing unremarked. If you're about to add such
+a rule, that section is the argument you're answering.
+
+#### What actually guarantees it
+
+A test that runs the sanitizer. Lint reads syntax, so it is blind to the three
+things most likely to hurt you: an option nobody wrote down, a default that
+changes under a dependency bump, and a config vendored inside a bundle — which
+is where Trix keeps its own DOMPurify options, `SAFE_FOR_XML: false` among them.
+No source-matching rule will ever see that file. Assert the behavior you need at
+the sink you own, and treat this guard as the thing that tells you at review time
+that you're about to lose it.
+
+`npm test` in `eslint-config/` checks the guard against its fixtures in both
+directions — every flagged form reported, every safe form clean.
 
 ## SCSS
 

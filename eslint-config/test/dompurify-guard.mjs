@@ -1,10 +1,14 @@
 // Verifies the DOMPurify guard in eslint.config.mjs against test/fixtures.
 //
-// The guard is a pile of esquery selectors, and every bypass found in review —
-// quoted keys, member assignment, shorthand values, compound assignment, nested
-// objects, spreads, computed overrides, persistent setConfig, aliasing — was a
-// selector that looked right and matched nothing. This asserts both directions:
-// every line tagged UNSAFE is reported, every other line stays clean.
+// The guard is a handful of esquery selectors, and a selector that looks right
+// while matching nothing is the normal failure mode — quoted keys, member
+// assignment, shorthand values and compound assignment each took a rewrite to
+// actually match. This asserts both directions: every line tagged UNSAFE is
+// reported, every other line stays clean.
+//
+// The clean direction carries as much weight as the caught one. The fixture's
+// "Not guarded, deliberately" section is untagged, so a new selector that
+// catches those forms fails here rather than landing unremarked.
 //
 // Run with `npm test` from eslint-config/.
 
@@ -13,7 +17,7 @@ import { readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import houseStyle from "../eslint.config.mjs"
 
-const FIXTURES = [ "fixtures/dompurify-guard.js", "fixtures/dompurify-guard-imports.js" ]
+const FIXTURES = [ "fixtures/dompurify-guard.js" ]
 
 const eslint = new ESLint({
   overrideConfigFile: true,
