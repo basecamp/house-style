@@ -1,0 +1,22 @@
+eslint-config/eslint.config.mjs
+  s_8a881e0b15478b::t_f40818d99bf3d9 100-111
+  s_8a881e0b15478b::t_ab0787634a778d 129-132
+eslint-config/test/fixtures/dompurify-guard.js
+  s_8a881e0b15478b::t_30aa46cc1344f0 96-100
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "cfb1b6e98aa01b1c4abbb9383b6b9fffc4c57038",
+  "prompts": {},
+  "sessions": {
+    "s_8a881e0b15478b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5a5009c2-58bf-4654-8c0c-c3163395286d",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jeremy Daer <jeremy@37signals.com>"
+    }
+  }
+}
