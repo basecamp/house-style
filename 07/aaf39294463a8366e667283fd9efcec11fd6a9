@@ -1,0 +1,35 @@
+eslint-config/test/fixtures/dompurify-guard.js
+  s_517d0dabfe14b2::t_36d0b05860cd4d 83-92
+  s_517d0dabfe14b2::t_5aef95af94efc8 1-10,14-30,33,36-82
+  s_517d0dabfe14b2::t_51cc50a9d30f0f 11-13
+  s_517d0dabfe14b2::t_c7f66ec1f4aa3d 31-32,34-35
+eslint-config/test/dompurify-guard.mjs
+  s_517d0dabfe14b2::t_368858cfbec68e 1-64
+eslint-config/test/fixtures/dompurify-guard-imports.js
+  s_517d0dabfe14b2::t_55d36ecf5b69a1 1-16
+eslint-config/package.json
+  s_517d0dabfe14b2::t_1a111985c769cf 12-17
+eslint-config/eslint.config.mjs
+  s_517d0dabfe14b2::t_498ee9523cfadd 5-40,58-101,110-114,148
+  s_517d0dabfe14b2::t_34a42c24be7088 48
+  s_517d0dabfe14b2::t_9b921d8c1a0f7d 41-47,49-57
+  s_517d0dabfe14b2::t_867ab53b44c7fa 102-109
+README.md
+  s_517d0dabfe14b2::t_e32257e7f096a9 63-97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "07aaf39294463a8366e667283fd9efcec11fd6a9",
+  "prompts": {},
+  "sessions": {
+    "s_517d0dabfe14b2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9d8fb96c-5b11-4cde-8aab-769b3739c5d1",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jeremy Daer <jeremy@37signals.com>"
+    }
+  }
+}
