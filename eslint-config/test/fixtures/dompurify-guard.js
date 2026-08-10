@@ -25,6 +25,10 @@ Trix.config.dompurify.SAFE_FOR_XML = true
 Trix.config.dompurify["ALLOW_DATA_ATTR"] = false
 Trix.config.dompurify.FORBID_TAGS = [ "script" ]
 
+// Safe: reading an option out of a config is not configuring it.
+const { ALLOW_DATA_ATTR } = someConfig
+const { SAFE_FOR_XML: xmlSafety } = someConfig
+
 // Safe: a hook that drops an attribute rather than forcing it through.
 data.forceKeepAttr = false
 
@@ -47,6 +51,7 @@ DOMPurify.sanitize(dirty, config, { ALLOW_DATA_ATTR: false }) // UNSAFE
 DOMPurify.sanitize({ ALLOW_DATA_ATTR: false }, config) // UNSAFE
 DOMPurify.sanitize(dirty, Object.assign({ ALLOW_DATA_ATTR: false }, config)) // UNSAFE
 DOMPurify.sanitize(dirty, { [option]: false }) // UNSAFE
+DOMPurify.sanitize(dirty, { [ALLOW_DATA_ATTR]: false }) // UNSAFE
 DOMPurify.sanitize(...args, { ALLOW_DATA_ATTR: false }) // UNSAFE
 
 // Unsafe: DOMPurify reached through the global object rather than by bare name.

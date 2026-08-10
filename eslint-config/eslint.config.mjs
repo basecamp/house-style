@@ -44,8 +44,17 @@ const SET_CONFIG = `CallExpression${DOMPURIFY}:matches([callee.property.name='se
 // `cfg.ALLOW_DATA_ATTR !== false`, for which "false" is truthy and leaves data-*
 // attributes enabled. Quoting a boolean is an ordinary slip, so without this the
 // guard reports nothing on a config that is quietly unsafe.
+// Two things keep this reading the key it claims to read. `ObjectExpression >`
+// excludes destructuring: `const { ALLOW_DATA_ATTR } = config` is an ObjectPattern
+// Property with a matching key and an identifier value, which is a read, not a
+// configuration — reporting it was a false positive on correct code. And
+// `[computed=false]` on the identifier branch means a computed key is only
+// honoured when it's a literal: `{ ["ALLOW_DATA_ATTR"]: false }` says what it
+// says, whereas `{ [ALLOW_DATA_ATTR]: false }` is whatever that variable holds.
+const OPTION_KEY = (option) => `:matches([key.name='${option}'][computed=false], [key.value='${option}'])`
+
 const carryingAnythingBut = (option, safeLiteral) => ":matches(" +
-  `Property:matches([key.name='${option}'], [key.value='${option}']):not([value.value=${safeLiteral}][value.raw='${safeLiteral}']), ` +
+  `ObjectExpression > Property${OPTION_KEY(option)}:not([value.value=${safeLiteral}][value.raw='${safeLiteral}']), ` +
   `AssignmentExpression:matches([left.property.name='${option}'], [left.property.value='${option}']):not([operator='='][right.value=${safeLiteral}][right.raw='${safeLiteral}'])` +
 ")"
 
@@ -61,7 +70,7 @@ const SINK_WITHOUT_INLINE_SAFE_CONFIG = `${SANITIZE}:not(` +
   "[arguments.length=2]" +
   ":not([arguments.0.type='ObjectExpression'])" +
   ":not(:has(> SpreadElement))" +
-  ":has(> ObjectExpression:has(> Property:matches([key.name='ALLOW_DATA_ATTR'], [key.value='ALLOW_DATA_ATTR'])[value.value=false][value.raw='false']))" +
+  `:has(> ObjectExpression:has(> Property${OPTION_KEY("ALLOW_DATA_ATTR")}[value.value=false][value.raw='false']))` +
 ")"
 
 // A hook that force-keeps an attribute overrides the config that just rejected
