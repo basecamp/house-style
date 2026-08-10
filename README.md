@@ -108,12 +108,21 @@ Run it with `--no-inline-config` and `--no-ignore`, so neither a call site nor a
 ignore file can drop something from the gate while the run still exits `0`:
 
 ```bash
-eslint --no-inline-config --no-ignore app/javascript
+# flat config (ESLint 9+)
+eslint --no-inline-config --no-ignore --no-config-lookup --config eslint.dompurify.mjs app/javascript
+
+# eslintrc (ESLint 8), which is what bc3 and HEY are still on
+eslint --no-inline-config --no-ignore --no-eslintrc -c config/eslint/dompurify-guard.json app/javascript
 ```
 
-Both flags want a dedicated run — `--no-eslintrc` against a DOMPurify-only
-config. Adding them to an existing style sweep drags every vendored and ignored
-file into the full ruleset, which in bc3 is 1142 unrelated errors.
+Both flags want that dedicated run, carrying the DOMPurify rules and nothing
+else. Adding them to an existing style sweep instead drags every ignored and
+vendored file into the *full* ruleset — in bc3 that is 1142 unrelated style
+errors, which is not a gate anyone will keep green.
+
+Note the flag that turns off config lookup differs by config format:
+`--no-config-lookup` on flat, `--no-eslintrc` on eslintrc. ESLint 9 removed
+`--no-eslintrc`, and passing it there exits before linting anything.
 
 #### What it deliberately doesn't catch
 
