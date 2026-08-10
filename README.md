@@ -60,6 +60,41 @@ export default [
 
 ```
 
+### DOMPurify guard
+
+The config carries a `no-restricted-syntax` guard over DOMPurify, because
+DOMPurify's defaults are not the ones we want. `ALLOW_DATA_ATTR` is read as
+`cfg.ALLOW_DATA_ATTR !== false`, so leaving it out keeps `data-*` smuggling
+open — and a `data-*` attribute is accepted *ahead of* `ALLOWED_ATTR`, so an
+allowlist of attributes does not close it. `setConfig` installs a persistent
+config, after which every per-call config is skipped entirely.
+
+Forbidding the unsafe value is therefore not enough; the safe value has to be
+demanded at each sink. Sanitize like this:
+
+```js
+import DOMPurify from "dompurify"
+
+DOMPurify.sanitize(dirty, { ALLOW_DATA_ATTR: false, SAFE_FOR_XML: true })
+```
+
+Exactly two arguments, the config an inline object literal. The guard rejects a
+by-reference config, a nested or spread config, a computed key, `setConfig`, a
+renamed import, and any alias or stored reference to `DOMPurify` or its
+`sanitize`. Those are all forms whose effective config ESLint cannot read: the
+guard refuses what it cannot verify rather than trusting it.
+
+Run the security lint with `--no-inline-config` so a call site can't excuse
+itself with `// eslint-disable-line no-restricted-syntax`:
+
+```bash
+eslint --no-inline-config app/javascript
+```
+
+`npm test` in `eslint-config/` checks the guard against fixtures covering every
+bypass found so far, in both directions — each one must be reported, and each
+safe form must stay clean.
+
 ## SCSS
 
 We use [Stylelint](https://stylelint.io) for our SCSS.

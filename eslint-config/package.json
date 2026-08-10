@@ -9,6 +9,12 @@
     "js"
   ],
   "main": "eslint.config.mjs",
+  "files": [
+    "eslint.config.mjs"
+  ],
+  "scripts": {
+    "test": "node test/dompurify-guard.mjs"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/basecamp/house-style.git"
