@@ -68,6 +68,9 @@ DOMPurify.sanitize(dirty, { ALLOW_DATA_ATTR }) // UNSAFE
 DOMPurify.sanitize(dirty, { ALLOW_DATA_ATTR: allowed }) // UNSAFE
 DOMPurify.sanitize(dirty, { ALLOW_DATA_ATTR: !true }) // UNSAFE
 DOMPurify.sanitize(dirty, { ALLOW_DATA_ATTR: false, "ALLOW_DATA_ATTR": true }) // UNSAFE
+DOMPurify.sanitize(dirty, { ALLOW_DATA_ATTR: "false" }) // UNSAFE
+DOMPurify.sanitize(dirty, { ALLOW_DATA_ATTR: false, SAFE_FOR_XML: "true" }) // UNSAFE
+Trix.config.dompurify.ALLOW_DATA_ATTR = "false" // UNSAFE
 DOMPurify.sanitize(dirty, { ALLOW_DATA_ATTR: false, SAFE_FOR_XML: false }) // UNSAFE
 Trix.config.dompurify.SAFE_FOR_XML = false // UNSAFE
 Trix.config.dompurify["SAFE_FOR_XML"] = permissive // UNSAFE

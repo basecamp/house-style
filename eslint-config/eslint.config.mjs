@@ -30,9 +30,16 @@ const SET_CONFIG = `CallExpression${DOMPURIFY}:matches([callee.property.name='se
 // A guarded option, wherever it appears, carrying anything but its safe literal:
 // an explicit unsafe value, a shorthand or variable value lint can't resolve, or
 // a compound assignment (??=, ||=, &&=) that preserves whatever is already there.
+//
+// The `raw` clause is what makes this a boolean check rather than a string one.
+// esquery compares attribute values as strings, so `[value.value=false]` also
+// matches the *string* "false" — and DOMPurify reads ALLOW_DATA_ATTR as
+// `cfg.ALLOW_DATA_ATTR !== false`, for which "false" is truthy and leaves data-*
+// attributes enabled. Quoting a boolean is an ordinary slip, so without this the
+// guard reports nothing on a config that is quietly unsafe.
 const carryingAnythingBut = (option, safeLiteral) => ":matches(" +
-  `Property:matches([key.name='${option}'], [key.value='${option}']):not([value.value=${safeLiteral}]), ` +
-  `AssignmentExpression:matches([left.property.name='${option}'], [left.property.value='${option}']):not([operator='='][right.value=${safeLiteral}])` +
+  `Property:matches([key.name='${option}'], [key.value='${option}']):not([value.value=${safeLiteral}][value.raw='${safeLiteral}']), ` +
+  `AssignmentExpression:matches([left.property.name='${option}'], [left.property.value='${option}']):not([operator='='][right.value=${safeLiteral}][right.raw='${safeLiteral}'])` +
 ")"
 
 // Exactly two arguments, the second an inline object literal carrying
@@ -42,7 +49,7 @@ const carryingAnythingBut = (option, safeLiteral) => ":matches(" +
 const SINK_WITHOUT_INLINE_SAFE_CONFIG = `${SANITIZE}:not(` +
   "[arguments.length=2]" +
   ":not([arguments.0.type='ObjectExpression'])" +
-  ":has(> ObjectExpression:has(> Property:matches([key.name='ALLOW_DATA_ATTR'], [key.value='ALLOW_DATA_ATTR'])[value.value=false]))" +
+  ":has(> ObjectExpression:has(> Property:matches([key.name='ALLOW_DATA_ATTR'], [key.value='ALLOW_DATA_ATTR'])[value.value=false][value.raw='false']))" +
 ")"
 
 // A spread *after* a guarded option overrides the safe literal the rules above
