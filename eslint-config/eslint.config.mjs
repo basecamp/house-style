@@ -2,6 +2,157 @@ import js from "@eslint/js"
 import globals from "globals"
 import stylistic from "@stylistic/eslint-plugin-js"
 
+// DOMPurify guard.
+//
+// These selectors catch mistakes a careful colleague could make — copying
+// Trix's config, deleting a line, hoisting a config to a constant, writing a
+// forwarding wrapper, reaching for setConfig. They do not stop someone
+// determined to evade them, and they aren't meant to: defeating them takes one
+// alias, and whoever can commit that alias can edit the sink instead.
+//
+// What they do hold is a *shape*, across every call site in the tree including
+// the ones not written yet: the safe option has to be written out, literally,
+// where it can be read. That is a real guarantee and it is the reason to keep
+// them — it caught a by-reference config in bc3 that had quietly reverted to
+// DOMPurify's unsafe default.
+//
+// What they cannot hold is a value. An option's runtime effect, a library
+// default that moves under a bump, config vendored inside a dependency's bundle
+// — Trix ships its own DOMPurify options that way — are all invisible here.
+// Those need a test that runs the sanitizer. Neither instrument substitutes for
+// the other, so use both and don't ask either for the other's job.
+//
+// DOMPurify's defaults are not the ones we want: ALLOW_DATA_ATTR is read as
+// `cfg.ALLOW_DATA_ATTR !== false`, so an omitted option keeps data-* smuggling
+// open — and a data-* attribute is accepted *ahead of* ALLOWED_ATTR, so a tight
+// allowlist reads as protection it isn't giving. setConfig installs a persistent
+// config after which every per-call config is skipped entirely. Forbidding the
+// unsafe literal is therefore not enough: the safe literal has to be demanded at
+// each sink, written out where lint can read it.
+
+const DOMPURIFY = ":matches([callee.object.name='DOMPurify'], [callee.object.property.name='DOMPurify'], [callee.object.property.value='DOMPurify'])"
+const SANITIZE = `CallExpression${DOMPURIFY}:matches([callee.property.name='sanitize'], [callee.property.value='sanitize'])`
+const SET_CONFIG = `CallExpression${DOMPURIFY}:matches([callee.property.name='setConfig'], [callee.property.value='setConfig'])`
+
+// A guarded option, wherever it appears, carrying anything but its safe literal:
+// an explicit unsafe value, a shorthand or variable value lint can't resolve, or
+// a compound assignment (??=, ||=, &&=) that preserves whatever is already there.
+//
+// The `raw` clause is what makes this a boolean check rather than a string one.
+// esquery compares attribute values as strings, so `[value.value=false]` also
+// matches the *string* "false" — and DOMPurify reads ALLOW_DATA_ATTR as
+// `cfg.ALLOW_DATA_ATTR !== false`, for which "false" is truthy and leaves data-*
+// attributes enabled. Quoting a boolean is an ordinary slip, so without this the
+// guard reports nothing on a config that is quietly unsafe.
+// Two things keep this reading the key it claims to read. `ObjectExpression >`
+// excludes destructuring: `const { ALLOW_DATA_ATTR } = config` is an ObjectPattern
+// Property with a matching key and an identifier value, which is a read, not a
+// configuration — reporting it was a false positive on correct code. And
+// `[computed=false]` on the identifier branch means a computed key is only
+// honoured when it's a literal: `{ ["ALLOW_DATA_ATTR"]: false }` says what it
+// says, whereas `{ [ALLOW_DATA_ATTR]: false }` is whatever that variable holds.
+const OPTION_KEY = (option) => `:matches([key.name='${option}'][computed=false], [key.value='${option}'])`
+
+const carryingAnythingBut = (option, safeLiteral) => ":matches(" +
+  `ObjectExpression > Property${OPTION_KEY(option)}:not([value.value=${safeLiteral}][value.raw='${safeLiteral}']), ` +
+  `AssignmentExpression:matches([left.property.name='${option}'], [left.property.value='${option}']):not([operator='='][right.value=${safeLiteral}][right.raw='${safeLiteral}'])` +
+")"
+
+// Exactly two arguments, the second an inline object literal carrying
+// ALLOW_DATA_ATTR: false among its own top-level keys. The arguments.0 clause
+// pins which direct-child ObjectExpression the :has() is allowed to read, so a
+// config in first position can't stand in for the one DOMPurify actually parses.
+// The no-spread clause is there because `arguments.length` counts a
+// SpreadElement as one argument: a forwarding wrapper written as
+// `sanitize(...args, safeConfig)` satisfied the two-argument shape while
+// DOMPurify took args[1] as the real config and ignored the safe one.
+const SINK_WITHOUT_INLINE_SAFE_CONFIG = `${SANITIZE}:not(` +
+  "[arguments.length=2]" +
+  ":not([arguments.0.type='ObjectExpression'])" +
+  ":not(:has(> SpreadElement))" +
+  `:has(> ObjectExpression:has(> Property${OPTION_KEY("ALLOW_DATA_ATTR")}[value.value=false][value.raw='false']))` +
+")"
+
+// A hook that force-keeps an attribute overrides the config that just rejected
+// it — the setConfig failure in hook form. Trix registers one of these for
+// /^data-trix-/ inside its own bundle, which is exactly how two of them come to
+// disagree. Dropping an attribute with keepAttr = false is unaffected.
+// Scoped to inside a DOMPurify.addHook call. This config is shared with apps we
+// don't see, and neither an unrelated `component.forceKeepAttr = true` nor
+// somebody else's `pluginManager.addHook(...)` is a sanitizing decision —
+// matching on the method name alone was still a false positive, just a narrower
+// one. A hook passed by reference escapes this, which is the aliasing class and
+// declined with the rest of it.
+const ADD_HOOK = `CallExpression${DOMPURIFY}:matches([callee.property.name='addHook'], [callee.property.value='addHook'])`
+const FORCE_KEEP_ATTR = `${ADD_HOOK} ` +
+  "AssignmentExpression" +
+  ":matches([left.property.name='forceKeepAttr'], [left.property.value='forceKeepAttr'])" +
+  ":not([operator='='][right.value=false][right.raw='false'])"
+
+// No spread anywhere in a sanitize config. This was briefly narrowed to "only a
+// spread *after* a guarded option", on the reasoning that
+// `{ ...defaults, ALLOW_DATA_ATTR: false }` is safe because the literal comes
+// last and wins. That reasoning was wrong, and instructively so: the literal
+// does win, but it is not the only thing in the object.
+//
+// Spreading Trix's own config — `{ ...Trix.config.dompurify, ALLOW_DATA_ATTR: false }`,
+// and Trix is imported in bc3 — merges in `SAFE_FOR_XML: false`, the exact value
+// the first rule forbids, plus `RETURN_DOM: true`, which stops sanitize
+// returning a string at all. Both invisible here.
+//
+// The closed form is the one that matches what this guard is for: the config has
+// to be written out where it can be read. Checking one option at a time only
+// ever patches the options we happen to guard.
+const SPREAD_IN_SINK_CONFIG = `${SANITIZE} > ObjectExpression > SpreadElement`
+
+// Removing ALLOW_DATA_ATTR from a persistent config restores DOMPurify's default,
+// which is the unsafe one — so `delete` is a write, and the assignment rule above
+// doesn't see it. HEY sets this option on Trix's shared config specifically
+// because it decides what survives inside <template> content, where Trix's own
+// element walk never descends.
+//
+// ALLOW_DATA_ATTR only, deliberately. SAFE_FOR_XML defaults to true, so deleting
+// that one restores a safe default and guarding it would be guarding a non-event.
+// The asymmetry between the two defaults is the whole reason this guard exists.
+// Both spellings: optional chaining puts a ChainExpression between the delete and
+// the member access, which a direct-child selector walks straight past.
+const DELETED_MEMBER = ":matches([property.name='ALLOW_DATA_ATTR'], [property.value='ALLOW_DATA_ATTR'])"
+const REMOVAL_OF_ALLOW_DATA_ATTR = ":matches(" +
+  `UnaryExpression[operator='delete'] > MemberExpression${DELETED_MEMBER}, ` +
+  `UnaryExpression[operator='delete'] > ChainExpression > MemberExpression${DELETED_MEMBER}` +
+")"
+
+const dompurifyGuard = [
+  {
+    "selector": carryingAnythingBut("SAFE_FOR_XML", true),
+    "message": "DOMPurify SAFE_FOR_XML must carry a literal true, assigned with plain `=` (mXSS risk). A shorthand or variable value is one lint can't resolve, and a compound assignment (??=, ||=, &&=) preserves whatever is already there."
+  },
+  {
+    "selector": carryingAnythingBut("ALLOW_DATA_ATTR", false),
+    "message": "DOMPurify ALLOW_DATA_ATTR must carry a literal false, assigned with plain `=` (attribute-smuggling risk). A shorthand or variable value is one lint can't resolve, and a compound assignment (??=, ||=, &&=) preserves whatever is already there."
+  },
+  {
+    "selector": SINK_WITHOUT_INLINE_SAFE_CONFIG,
+    "message": "DOMPurify.sanitize must be called as sanitize(dirty, { ALLOW_DATA_ATTR: false, ... }): two arguments written out, neither of them a spread, with the config an inline object literal carrying ALLOW_DATA_ATTR: false among its own top-level keys. DOMPurify defaults ALLOW_DATA_ATTR to true, and an omitted, by-reference, nested, or extra-argument config leaves that default in place. A forwarding wrapper — `sanitize(...args, safeConfig)` — is the easy accident: args[1] arrives as the real config and the safe one is ignored."
+  },
+  {
+    "selector": SPREAD_IN_SINK_CONFIG,
+    "message": "A DOMPurify.sanitize config must not spread another object: its contents are invisible here, so the options this guard checks can be set by something it cannot read. Spreading Trix's config, for instance, merges in SAFE_FOR_XML: false and RETURN_DOM: true — the second stops sanitize returning a string at all. Write the options out."
+  },
+  {
+    "selector": REMOVAL_OF_ALLOW_DATA_ATTR,
+    "message": "Deleting ALLOW_DATA_ATTR from a persistent DOMPurify config restores its default, which is true — every data-* attribute admitted again, ahead of any ALLOWED_ATTR allowlist. Assign false rather than removing it."
+  },
+  {
+    "selector": SET_CONFIG,
+    "message": "DOMPurify.setConfig installs a persistent config, after which sanitize ignores every per-call config — an inline ALLOW_DATA_ATTR: false would silently stop applying. Pass the config to each sanitize call instead."
+  },
+  {
+    "selector": FORCE_KEEP_ATTR,
+    "message": "An uponSanitizeAttribute hook that sets forceKeepAttr keeps an attribute the config just rejected, so ALLOW_DATA_ATTR stops deciding anything downstream of it. Trix already registers one of these for /^data-trix-/ inside its own bundle; a second one in app code is how the two quietly disagree. Setting keepAttr = false to drop an attribute is fine and unaffected."
+  }
+]
+
 export default {
   languageOptions: {
     ecmaVersion: "latest",
@@ -35,6 +186,7 @@ export default {
     "@stylistic/js/space-infix-ops": [ "error" ],
     "@stylistic/js/keyword-spacing": [ "error" ],
     "curly": [ "error", "multi-line" ],
+    "no-restricted-syntax": [ "error", ...dompurifyGuard ],
     "no-unused-vars": [ "error", { "args": "none", "caughtErrors": "none" } ],
     "no-var": "error",
     "prefer-const": [ "error", { "destructuring": "all" } ]
