@@ -33,6 +33,7 @@ const { SAFE_FOR_XML: xmlSafety } = someConfig
 // unrelated property that merely shares the name.
 DOMPurify.addHook("uponSanitizeAttribute", (node, data) => { data.forceKeepAttr = false })
 component.forceKeepAttr = true
+pluginManager.addHook("event", (node, data) => { data.forceKeepAttr = true })
 
 // Safe: taking DOMPurify off the global under its own name, and feature-testing
 // for it without taking a reference.

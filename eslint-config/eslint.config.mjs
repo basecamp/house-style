@@ -77,13 +77,14 @@ const SINK_WITHOUT_INLINE_SAFE_CONFIG = `${SANITIZE}:not(` +
 // it — the setConfig failure in hook form. Trix registers one of these for
 // /^data-trix-/ inside its own bundle, which is exactly how two of them come to
 // disagree. Dropping an attribute with keepAttr = false is unaffected.
-// Scoped to inside an addHook call. `forceKeepAttr` is a DOMPurify-specific
-// name, but this config is shared with apps we don't see, and an unrelated
-// `component.forceKeepAttr = true` is not a sanitizing decision — reporting it
-// was a false positive of the same kind as the destructuring one above. A hook
-// passed by reference escapes this, which is the aliasing class and declined
-// with the rest of it.
-const FORCE_KEEP_ATTR = "CallExpression:matches([callee.property.name='addHook'], [callee.property.value='addHook']) " +
+// Scoped to inside a DOMPurify.addHook call. This config is shared with apps we
+// don't see, and neither an unrelated `component.forceKeepAttr = true` nor
+// somebody else's `pluginManager.addHook(...)` is a sanitizing decision —
+// matching on the method name alone was still a false positive, just a narrower
+// one. A hook passed by reference escapes this, which is the aliasing class and
+// declined with the rest of it.
+const ADD_HOOK = `CallExpression${DOMPURIFY}:matches([callee.property.name='addHook'], [callee.property.value='addHook'])`
+const FORCE_KEEP_ATTR = `${ADD_HOOK} ` +
   "AssignmentExpression" +
   ":matches([left.property.name='forceKeepAttr'], [left.property.value='forceKeepAttr'])" +
   ":not([operator='='][right.value=false][right.raw='false'])"
