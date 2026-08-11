@@ -29,8 +29,10 @@ Trix.config.dompurify.FORBID_TAGS = [ "script" ]
 const { ALLOW_DATA_ATTR } = someConfig
 const { SAFE_FOR_XML: xmlSafety } = someConfig
 
-// Safe: a hook that drops an attribute rather than forcing it through.
-data.forceKeepAttr = false
+// Safe: a hook that drops an attribute rather than forcing it through, and an
+// unrelated property that merely shares the name.
+DOMPurify.addHook("uponSanitizeAttribute", (node, data) => { data.forceKeepAttr = false })
+component.forceKeepAttr = true
 
 // Safe: taking DOMPurify off the global under its own name, and feature-testing
 // for it without taking a reference.
@@ -68,8 +70,8 @@ DOMPurify.sanitize(dirty, { ...Trix.config.dompurify, ALLOW_DATA_ATTR: false }) 
 DOMPurify.sanitize(dirty, { SAFE_FOR_XML: true, ...config, ALLOW_DATA_ATTR: false }) // UNSAFE
 
 // Unsafe: a hook that force-keeps an attribute the config just rejected.
-event.forceKeepAttr = true // UNSAFE
-data.forceKeepAttr = allowed // UNSAFE
+DOMPurify.addHook("uponSanitizeAttribute", (node, event) => { event.forceKeepAttr = true }) // UNSAFE
+DOMPurify.addHook("uponSanitizeAttribute", (node, data) => { data.forceKeepAttr = allowed }) // UNSAFE
 
 // Unsafe: a persistent config makes every per-call config inert.
 DOMPurify.setConfig({ ALLOW_DATA_ATTR: false }) // UNSAFE
@@ -97,6 +99,7 @@ Trix.config.dompurify.ALLOW_DATA_ATTR ??= false // UNSAFE
 // write the assignment rule above can't see.
 delete Trix.config.dompurify.ALLOW_DATA_ATTR // UNSAFE
 delete Trix.config.dompurify["ALLOW_DATA_ATTR"] // UNSAFE
+delete Trix.config?.dompurify.ALLOW_DATA_ATTR // UNSAFE
 
 // ---------------------------------------------------------------------------
 // Not guarded, deliberately.
