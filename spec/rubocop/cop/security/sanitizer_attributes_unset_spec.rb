@@ -175,6 +175,47 @@ RSpec.describe RuboCop::Cop::Security::SanitizerAttributesUnset, :config do
     RUBY
   end
 
+  it "does not let a class-method attributes assignment satisfy an instance-level tags policy" do
+    expect_offense(<<~RUBY)
+      class HtmlScrubber < Rails::HTML::PermitScrubber
+        def initialize
+          super
+          self.tags = %w[p a]
+          ^^^^^^^^^^^^^^^^^^^ #{msg("self.attributes")}
+        end
+
+        def self.configure
+          self.attributes = %w[href]
+        end
+      end
+    RUBY
+  end
+
+  it "does not register an offense when attributes are set from another instance method" do
+    expect_no_offenses(<<~RUBY)
+      class HtmlScrubber < Rails::HTML::PermitScrubber
+        def initialize
+          super
+          self.tags = %w[p a]
+          configure_attributes
+        end
+
+        def configure_attributes
+          self.attributes = %w[href]
+        end
+      end
+    RUBY
+  end
+
+  it "does not register an offense when tags and attributes are both set at class level" do
+    expect_no_offenses(<<~RUBY)
+      class CommentSanitizer < Rails::HTML5::SafeListSanitizer
+        self.allowed_tags = %w[p]
+        self.allowed_attributes = %w[href]
+      end
+    RUBY
+  end
+
   it "does not register an offense for tags assignment outside sanitizer-like classes" do
     expect_no_offenses(<<~RUBY)
       class Post

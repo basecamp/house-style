@@ -88,13 +88,14 @@ module RuboCop
 
         def on_class(node)
           if sanitizer_like?(node) && node.body
-            nodes = scoped_nodes(node.body)
-            configured = configured_attributes(nodes)
+            scoped_nodes(node.body).each_value do |nodes|
+              configured = configured_attributes(nodes)
 
-            nodes.each do |candidate|
-              partner = ATTRIBUTE_PARTNER[setter_stem(tags_setter_stem(candidate))]
-              if partner && !configured.include?(partner)
-                add_offense(candidate, message: format(MSG, attribute_setter: "self.#{partner}"))
+              nodes.each do |candidate|
+                partner = ATTRIBUTE_PARTNER[setter_stem(tags_setter_stem(candidate))]
+                if partner && !configured.include?(partner)
+                  add_offense(candidate, message: format(MSG, attribute_setter: "self.#{partner}"))
+                end
               end
             end
           end
@@ -120,14 +121,20 @@ module RuboCop
               .any? { |name| name.match?(/scrubber|saniti/i) }
           end
 
-          # Collect the send and op-asgn nodes in the class's own scope without
-          # descending into nested class/module/sclass bodies, so an assignment in
-          # an inner class neither suppresses nor is misattributed to the outer
+          # Collect the send and op-asgn nodes in the class's own scope, bucketed
+          # by what `self` is where they sit: the class in the body and inside
+          # `def self.` methods, an instance inside `def`. A tag policy is only
+          # satisfied by an attributes policy on the same object, so the buckets
+          # never pair — `self.attributes = ...` in a class method configures
+          # nothing the instance-level `self.tags = ...` runs with. Nested
+          # class/module/sclass bodies are not descended, so an assignment in an
+          # inner class neither suppresses nor is misattributed to the outer
           # sanitizer. Op-asgn carries the `+=` extend form, which is not a send.
-          def scoped_nodes(node, collected = [])
-            collected << node if node.send_type? || node.op_asgn_type?
+          def scoped_nodes(node, receiver = :class, collected = Hash.new { |hash, key| hash[key] = [] })
+            collected[receiver] << node if node.send_type? || node.op_asgn_type?
             unless node.class_type? || node.module_type? || node.sclass_type?
-              node.each_child_node { |child| scoped_nodes(child, collected) }
+              inner = node.def_type? ? :instance : receiver
+              node.each_child_node { |child| scoped_nodes(child, inner, collected) }
             end
             collected
           end
