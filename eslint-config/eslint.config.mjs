@@ -153,6 +153,8 @@ const dompurifyGuard = [
   }
 ]
 
+export { dompurifyGuard }
+
 export default {
   languageOptions: {
     ecmaVersion: "latest",

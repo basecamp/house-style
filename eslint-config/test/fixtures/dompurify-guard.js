@@ -130,6 +130,8 @@ delete Trix.config?.dompurify.ALLOW_DATA_ATTR // UNSAFE
 const purifier = DOMPurify
 const { sanitize } = DOMPurify
 const legacy = require("dompurify")
+const unwrapped = require("dompurify").default
+const configure = DOMPurify.setConfig
 
 // Renamed and namespace imports — same reason, at the import instead.
 import purify from "dompurify"
@@ -147,6 +149,20 @@ DOMPurify.sanitize.call(null, dirty, { ALLOW_DATA_ATTR: false })
 DOMPurify.sanitize.apply(null, [ dirty ])
 const bound = DOMPurify.sanitize.bind(DOMPurify)
 
+// Reaching the method through a name lint can't read. Spelling `sanitize` as
+// anything but `sanitize` is the same choice as renaming the module.
+DOMPurify[method](dirty)
+DOMPurify["san" + "itize"](dirty)
+
 // A computed key overriding the literal at runtime while lint reads only the
 // literal. Writing `[option]` next to a literal you're cancelling is a choice.
 DOMPurify.sanitize(dirty, { ALLOW_DATA_ATTR: false, [option]: true })
+
+// A prototype behind the literal: DOMPurify reads inherited options too, and
+// `__proto__` is a spread that lint sees as a plain key. Nobody writes it by
+// accident, least of all beside a literal it exists to undercut.
+DOMPurify.sanitize(dirty, { ALLOW_DATA_ATTR: false, __proto__: importedOptions })
+
+// Arithmetic on a boolean. `delete` is guarded above because removing a line is
+// an ordinary edit; incrementing a security option is not.
+Trix.config.dompurify.ALLOW_DATA_ATTR++

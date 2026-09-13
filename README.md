@@ -105,8 +105,25 @@ isn't the only thing in the object. Spreading Trix's own config merges in
 `RETURN_DOM: true`, which stops `sanitize` returning a string at all. Checking
 one option at a time only ever patches the options we happen to guard.
 
-Run it with `--no-inline-config` and `--no-ignore`, so neither a call site nor an
-ignore file can drop something from the gate while the run still exits `0`:
+Run it as a dedicated sweep carrying the DOMPurify rules and nothing else, with
+`--no-inline-config` and `--no-ignore` so neither a call site nor an ignore file
+can drop something from the gate while the run still exits `0`. That dedicated
+config is a file in your repo, and it is short. On flat config the guard is a
+named export of this package:
+
+```js
+// eslint.dompurify.mjs
+import { dompurifyGuard } from "@37signals/eslint-config"
+
+export default [ { rules: { "no-restricted-syntax": [ "error", ...dompurifyGuard ] } } ]
+```
+
+On eslintrc, ESLint 8 can't load this package's ESM config, so the file carries
+a copy of the selectors: bc3 and HEY keep theirs in
+`config/eslint/dompurify-rules.json`, extended by a `config/eslint/dompurify-guard.json`
+that adds `root`, `parserOptions` and `env`. Copy the `dompurifyGuard` array out of
+[`eslint.config.mjs`](/eslint-config/eslint.config.mjs) and refresh it when this
+package changes.
 
 ```bash
 # flat config (ESLint 9+)
@@ -116,10 +133,9 @@ eslint --no-inline-config --no-ignore --no-config-lookup --config eslint.dompuri
 eslint --no-inline-config --no-ignore --no-eslintrc -c config/eslint/dompurify-guard.json app/javascript
 ```
 
-Both flags want that dedicated run, carrying the DOMPurify rules and nothing
-else. Adding them to an existing style sweep instead drags every ignored and
-vendored file into the *full* ruleset — in bc3 that is 1142 unrelated style
-errors, which is not a gate anyone will keep green.
+Both flags want that dedicated run. Adding them to an existing style sweep
+instead drags every ignored and vendored file into the *full* ruleset — in bc3
+that is 1142 unrelated style errors, which is not a gate anyone will keep green.
 
 Note the flag that turns off config lookup differs by config format:
 `--no-config-lookup` on flat, `--no-eslintrc` on eslintrc. ESLint 9 removed
