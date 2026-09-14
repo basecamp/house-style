@@ -216,6 +216,28 @@ RSpec.describe RuboCop::Cop::Security::SanitizerAttributesUnset, :config do
     RUBY
   end
 
+  it "does not treat a nil tags assignment as a tag policy" do
+    expect_no_offenses(<<~RUBY)
+      class HtmlScrubber < Rails::HTML::PermitScrubber
+        def initialize
+          super
+          self.tags = nil
+        end
+      end
+    RUBY
+  end
+
+  it "does not recognise concat as a tag policy, deliberately" do
+    expect_no_offenses(<<~RUBY)
+      class HtmlScrubber < Rails::HTML::PermitScrubber
+        def initialize
+          super
+          self.tags.concat(%w[iframe])
+        end
+      end
+    RUBY
+  end
+
   it "does not register an offense for tags assignment outside sanitizer-like classes" do
     expect_no_offenses(<<~RUBY)
       class Post

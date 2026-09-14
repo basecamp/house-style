@@ -58,11 +58,16 @@ module RuboCop
         # `self.tags = x` (a `:tags=` send), `self.tags += x` (an op-asgn over the
         # `:tags` reader), and `self.tags << x` (a `<<` send on the reader).
         # Captures the stem symbol (`:tags` / `:allowed_tags`), `=` chomped off.
+        # A nil RHS is not a policy — `self.tags = nil` restores the default —
+        # so it is excluded here as it is for attributes below. The rest of
+        # Array's mutator vocabulary (`concat`, `push`, `unshift`, ...) is left
+        # unmatched on purpose: each is one more spelling, none is in use, and
+        # the list has no end.
         def_node_matcher :tags_setter_stem, <<~PATTERN
           {
-            (send self ${:tags= :allowed_tags=} _)
-            (op_asgn (send self ${:tags :allowed_tags}) _ _)
-            (send (send self ${:tags :allowed_tags}) :<< _)
+            (send self ${:tags= :allowed_tags=} !nil_type?)
+            (op_asgn (send self ${:tags :allowed_tags}) _ !nil_type?)
+            (send (send self ${:tags :allowed_tags}) :<< !nil_type?)
           }
         PATTERN
 
