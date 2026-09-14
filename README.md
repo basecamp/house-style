@@ -119,11 +119,18 @@ export default [ { rules: { "no-restricted-syntax": [ "error", ...dompurifyGuard
 ```
 
 On eslintrc, ESLint 8 can't load this package's ESM config, so the file carries
-a copy of the selectors: bc3 and HEY keep theirs in
-`config/eslint/dompurify-rules.json`, extended by a `config/eslint/dompurify-guard.json`
-that adds `root`, `parserOptions` and `env`. Copy the `dompurifyGuard` array out of
-[`eslint.config.mjs`](/eslint-config/eslint.config.mjs) and refresh it when this
-package changes.
+a copy of the selectors. They are assembled in JavaScript, so print them resolved
+rather than copying source:
+
+```bash
+node -e 'import("@37signals/eslint-config").then(m => console.log(JSON.stringify(m.dompurifyGuard, null, 2)))'
+```
+
+That array goes after `"error"` under `"no-restricted-syntax"` in a rules file;
+bc3 and HEY keep theirs in `config/eslint/dompurify-rules.json`, extended by a
+`config/eslint/dompurify-guard.json` that adds `root`, `parserOptions` and `env`.
+Rerun the command when this package changes — the copy is the consumer's to keep
+current.
 
 ```bash
 # flat config (ESLint 9+)
